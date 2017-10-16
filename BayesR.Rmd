@@ -1,0 +1,51 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+source('../Simulations/LinearModel/Coefficients.R')
+source('../Simulations/LinearModel/Covariates.R')
+source('../Simulations/LinearModel/noise.R')
+source('../Simulations/LinearModel/LinearModel.R')
+library(rstan)
+N=1000
+M=100
+Q=1
+P=1
+K=4
+set.seed(123)
+X <- covariateMatrix(N = N, M=M,covariatesVar = rep(1/N,M))
+Z <- covariateMatrix(N=N,M = P)
+E <- iidNormal(N=N,traits = Q,sdI = 0.0001)
+B <- replicate(
+  n=Q, mixtureCoefSingle(
+    M = M,proportions = rep(1/K,K),variance = 0.1*c(1e-6,1e-3,1e-2,1e-1)
+    )
+  )[1,]
+B <- t(do.call(what = rbind,args = B))
+
+U <- unlist(replicate(
+  n=Q, mixtureCoefSingle(
+    M = P,proportions = 1,variance = 0.1
+    ))[1,1,])
+Y <- linearModel(X = X,B = B,E = E)
+Y=y[,1]
+Px=M
+save(list=c('X','Y','U','E','B','Z'),file=c('BayesRInput.RData'))
+options(mc.cores = parallel::detectCores())
+modelUnpooled<- stan_model(file = "BayesRUnPooled.stan",auto_write = T)
+BayesFitUnpooled<-sampling(modelUnpooled,chains=4,warmup=1000,iter=2000)
+ save(list='BayesFitUnpooled',file='BayesFitUnpooled.RData')
+ 
+ modelPooled<- stan_model(file = "BayesRPooled.stan",auto_write = T)
+BayesFitPooled<-sampling(modelPooled,chains=4,warmup=1000,iter=2000)
+ save(list='BayesFitPooled',file='BayesFitPooled.RData')
+ 
+ ssUnpooled<- shinystan::as.shinystan(BayesFitUnpooled)
+ save(list='ssUnpooled',file='BayesFitUnpooledSS.RData')
+ 
+ ssPooled<- shinystan::as.shinystan(BayesFitPooled)
+ save(list='ssPooled',file='BayesFitPooledSS.RData')
+ 
+ 
+```

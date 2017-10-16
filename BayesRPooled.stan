@@ -1,0 +1,59 @@
+//POOLED BayesR: component probabilities for all effects"
+	data{ 
+	int<lower=0> Px;
+	int<lower=0> N;
+	matrix[N,Px] X;
+	real y[N];
+}
+transformed data{
+  vector[4] components;
+  components[1]=1e-6;
+  components[2]=1e-3;
+  components[3]=1e-2;
+  components[4]=1e-1;
+}
+parameters{
+vector[Px] beta; // flat prior 
+
+// this gives the lower bound for the variance components
+real<lower=0> sigma;
+// this is our vector of marker-specific variances
+real<lower=0> tau;
+vector[N] MU;
+simplex[4] pi;
+}
+
+transformed parameters{
+real lp;
+vector[4] cVar;
+cVar=tau*components;
+
+{
+  vector[4] beta1; // flat prior 
+  real accum;
+  accum=0;
+  for(i in 1:Px){ //mixture contributions to the joint distribution
+    beta1[1]=log(pi[1])+normal_lpdf(beta[i]|0,cVar[1]);
+    beta1[2]= log(pi[2])+normal_lpdf(beta[i]|0,cVar[2]);
+    beta1[3]=log(pi[3])+normal_lpdf(beta[i]|0,cVar[3]);
+    beta1[4]=log(pi[4])+normal_lpdf(beta[i]|0,cVar[4]);
+    accum= accum+log_sum_exp(beta1);
+  }
+  lp=accum;
+}
+}
+model{
+tau ~ scaled_inv_chi_square(2,0); //normal prior on variances as recommended in stan page
+sigma ~ scaled_inv_chi_square(2,); // normal prior on variance as recommended in stan page
+//MU ~ cauchy(0,1);   // fat tailed prior on the means
+// the likelihood (vector expression)
+y ~ normal( X * beta, sigma);
+
+target += lp; //mixture contribution to the joint distribution
+}
+
+generated quantities{
+  vector[N] ypred;
+  for(i in 1:N)
+    ypred[i] = normal_rng(MU[i] +X[i,]*beta,sigma);
+}
