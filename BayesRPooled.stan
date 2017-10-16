@@ -3,7 +3,7 @@
 	int<lower=0> Px;
 	int<lower=0> N;
 	matrix[N,Px] X;
-	real y[N];
+	real Y[N];
 }
 transformed data{
   vector[4] components;
@@ -26,7 +26,11 @@ simplex[4] pi;
 transformed parameters{
 real lp;
 vector[4] cVar;
-cVar=tau*components;
+real sigmaS;
+real tauS;
+sigmaS =1*sigma;
+tauS = 1*sigma;
+cVar=tauS*components;
 
 {
   vector[4] beta1; // flat prior 
@@ -43,11 +47,11 @@ cVar=tau*components;
 }
 }
 model{
-tau ~ scaled_inv_chi_square(2,0); //normal prior on variances as recommended in stan page
-sigma ~ scaled_inv_chi_square(2,); // normal prior on variance as recommended in stan page
+tau ~ cauchy(0,1); //normal prior on variances as recommended in stan page
+sigma ~ normal(0,1); // normal prior on variance as recommended in stan page
 //MU ~ cauchy(0,1);   // fat tailed prior on the means
 // the likelihood (vector expression)
-y ~ normal( X * beta, sigma);
+Y ~ normal( X * beta, sigmaS);
 
 target += lp; //mixture contribution to the joint distribution
 }
@@ -55,5 +59,5 @@ target += lp; //mixture contribution to the joint distribution
 generated quantities{
   vector[N] ypred;
   for(i in 1:N)
-    ypred[i] = normal_rng(MU[i] +X[i,]*beta,sigma);
+    ypred[i] = normal_rng(X[i,]*beta,sigma);
 }

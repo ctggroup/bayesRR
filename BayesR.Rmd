@@ -14,9 +14,9 @@ Q=1
 P=1
 K=4
 set.seed(123)
-X <- covariateMatrix(N = N, M=M,covariatesVar = rep(1/N,M))
+X <- covariateMatrix(N = N, M=M,covariatesVar = rep(1,M))
 Z <- covariateMatrix(N=N,M = P)
-E <- iidNormal(N=N,traits = Q,sdI = 0.0001)
+E <- iidNormal(N=N,traits = Q,sdI = 0.001)
 B <- replicate(
   n=Q, mixtureCoefSingle(
     M = M,proportions = rep(1/K,K),variance = 0.1*c(1e-6,1e-3,1e-2,1e-1)
@@ -29,23 +29,38 @@ U <- unlist(replicate(
     M = P,proportions = 1,variance = 0.1
     ))[1,1,])
 Y <- linearModel(X = X,B = B,E = E)
-Y=y[,1]
 Px=M
 save(list=c('X','Y','U','E','B','Z'),file=c('BayesRInput.RData'))
 options(mc.cores = parallel::detectCores())
 modelUnpooled<- stan_model(file = "BayesRUnPooled.stan",auto_write = T)
-BayesFitUnpooled<-sampling(modelUnpooled,chains=4,warmup=1000,iter=2000)
+BayesFitUnpooled<-sampling(modelUnpooled,chains=1,warmup=2000,iter=4000,control = list(max_treedepth = 12))
  save(list='BayesFitUnpooled',file='BayesFitUnpooled.RData')
+Y=scale(Y)
+Y=Y[,1]
+X=scale(X)
  
  modelPooled<- stan_model(file = "BayesRPooled.stan",auto_write = T)
-BayesFitPooled<-sampling(modelPooled,chains=4,warmup=1000,iter=2000)
+BayesFitPooled<-sampling(modelPooled,chains=4,warmup=2000,iter=4000,control = list(max_treedepth = 12))
  save(list='BayesFitPooled',file='BayesFitPooled.RData')
+ rstan::stan_diag(BayesFitPooled)
  
- ssUnpooled<- shinystan::as.shinystan(BayesFitUnpooled)
- save(list='ssUnpooled',file='BayesFitUnpooledSS.RData')
+ stan_effects<- rstan::get_posterior_mean(BayesFitPooled,'beta')
+ 
  
  ssPooled<- shinystan::as.shinystan(BayesFitPooled)
  save(list='ssPooled',file='BayesFitPooledSS.RData')
  
+ plot(x=B[,1],y=stan_effects[,1],main="Bayes R pooled")
+ points(x=B[,1],y=stan_effects[,2],col="red")
+ points(x=B[,1],y=stan_effects[,3],col="blue")
+ points(x=B[,1],y=stan_effects[,4],col="green")
+ lines(B[,1],B[,1])
+ 
+  stan_effects<- rstan::get_posterior_mean(BayesFitUnPooled,'beta')
+ plot(B[,1],B[,1],type="l",main="Bayes R Unpooled")
+ points(x=B[,1],y=stan_effects[,1])
+ points(x=B[,1],y=stan_effects[,2],col="red")
+ points(x=B[,1],y=stan_effects[,3],col="blue")
+ points(x=B[,1],y=stan_effects[,4],col="green")
  
 ```

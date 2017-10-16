@@ -1,5 +1,5 @@
 //UNPOOLED BayesR: individual component probabilities for each effect"
-	data{ 
+		data{ 
 	int<lower=0> Px;
 	int<lower=0> N;
 	matrix[N,Px] X;
@@ -19,35 +19,39 @@ vector[Px] beta; // flat prior
 real<lower=0> sigma;
 // this is our vector of marker-specific variances
 real<lower=0> tau;
-//vector[N] MU;
+vector[N] MU;
 simplex[4] pi[Px];
 }
 
 transformed parameters{
 real lp;
 vector[4] cVar;
-cVar=tau*components;
+real sigmaS;
+real tauS;
+sigmaS =1*sigma;
+tauS = 1*sigma;
+cVar=tauS*components;
 
 {
   vector[4] beta1; // flat prior 
   real accum;
   accum=0;
   for(i in 1:Px){ //mixture contributions to the joint distribution
-    beta1[1]=log(pi[i,1])+normal_lpdf(beta[i]|0,cVar[1]);
-    beta1[2]= log(pi[i,2])+normal_lpdf(beta[i]|0,cVar[2]);
-    beta1[3]=log(pi[i,3])+normal_lpdf(beta[i]|0,cVar[3]);
-    beta1[4]=log(pi[i,4])+normal_lpdf(beta[i]|0,cVar[4]);
+    beta1[1]=log(pi[1,i])+normal_lpdf(beta[i]|0,cVar[1]);
+    beta1[2]= log(pi[2,i])+normal_lpdf(beta[i]|0,cVar[2]);
+    beta1[3]=log(pi[3,i])+normal_lpdf(beta[i]|0,cVar[3]);
+    beta1[4]=log(pi[4,i])+normal_lpdf(beta[i]|0,cVar[4]);
     accum= accum+log_sum_exp(beta1);
   }
   lp=accum;
 }
 }
 model{
-tau ~ scaled_inv_chi_square(2,0); //normal prior on variances as recommended in stan page
-sigma ~ scaled_inv_chi_square(2,); // normal prior on variance as recommended in stan page
+tau ~ cauchy(0,1); //normal prior on variances as recommended in stan page
+sigma ~ normal(0,1); // normal prior on variance as recommended in stan page
 //MU ~ cauchy(0,1);   // fat tailed prior on the means
 // the likelihood (vector expression)
-y ~ normal( X * beta, sigma);
+Y ~ normal( X * beta, sigmaS);
 
 target += lp; //mixture contribution to the joint distribution
 }
@@ -55,5 +59,5 @@ target += lp; //mixture contribution to the joint distribution
 generated quantities{
   vector[N] ypred;
   for(i in 1:N)
-    ypred[i] = normal_rng(MU[i] +X[i,]*beta,sigma);
+    ypred[i] = normal_rng(X[i,]*beta,sigma);
 }
