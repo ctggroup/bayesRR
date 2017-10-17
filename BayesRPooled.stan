@@ -26,11 +26,11 @@ simplex[4] pi;
 transformed parameters{
 real lp;
 vector[4] cVar;
-real sigmaS;
-real tauS;
-sigmaS =1*sigma;
-tauS = 1*sigma;
-cVar=tauS*components;
+#real sigmaS;
+#real tauS;
+#sigmaS =10*sigma;
+#tauS = 0.01*tau;
+cVar=tau*components;
 
 {
   vector[4] beta1; // flat prior 
@@ -47,11 +47,11 @@ cVar=tauS*components;
 }
 }
 model{
-tau ~ cauchy(0,1); //normal prior on variances as recommended in stan page
-sigma ~ normal(0,1); // normal prior on variance as recommended in stan page
+tau ~ inv_gamma(2,1); //normal prior on variances as recommended in stan page
+sigma ~ inv_gamma(2,1); // normal prior on variance as recommended in stan page
 //MU ~ cauchy(0,1);   // fat tailed prior on the means
 // the likelihood (vector expression)
-Y ~ normal( X * beta, sigmaS);
+Y ~ normal( X * beta, sigma);
 
 target += lp; //mixture contribution to the joint distribution
 }

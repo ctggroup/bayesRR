@@ -28,30 +28,30 @@ real lp;
 vector[4] cVar;
 real sigmaS;
 real tauS;
-sigmaS =1*sigma;
-tauS = 1*sigma;
-cVar=tauS*components;
+//sigmaS =1*sigma;
+//tauS = 0.1*tau;
+cVar=tau*components;
 
 {
   vector[4] beta1; // flat prior 
   real accum;
   accum=0;
   for(i in 1:Px){ //mixture contributions to the joint distribution
-    beta1[1]=log(pi[1,i])+normal_lpdf(beta[i]|0,cVar[1]);
-    beta1[2]= log(pi[2,i])+normal_lpdf(beta[i]|0,cVar[2]);
-    beta1[3]=log(pi[3,i])+normal_lpdf(beta[i]|0,cVar[3]);
-    beta1[4]=log(pi[4,i])+normal_lpdf(beta[i]|0,cVar[4]);
+    beta1[1]=log(pi[i,1])+normal_lpdf(beta[i]|0,cVar[1]);
+    beta1[2]= log(pi[i,2])+normal_lpdf(beta[i]|0,cVar[2]);
+    beta1[3]=log(pi[i,3])+normal_lpdf(beta[i]|0,cVar[3]);
+    beta1[4]=log(pi[i,4])+normal_lpdf(beta[i]|0,cVar[4]);
     accum= accum+log_sum_exp(beta1);
   }
   lp=accum;
 }
 }
 model{
-tau ~ cauchy(0,1); //normal prior on variances as recommended in stan page
-sigma ~ normal(0,1); // normal prior on variance as recommended in stan page
+tau ~ inv_gamma(2,1); //normal prior on variances as recommended in stan page
+sigma ~ inv_gamma(2,1); // normal prior on variance as recommended in stan page
 //MU ~ cauchy(0,1);   // fat tailed prior on the means
 // the likelihood (vector expression)
-Y ~ normal( X * beta, sigmaS);
+Y ~ normal( X * beta, sigma);
 
 target += lp; //mixture contribution to the joint distribution
 }
