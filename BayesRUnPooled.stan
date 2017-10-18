@@ -26,8 +26,8 @@ simplex[4] pi[Px];
 transformed parameters{
 real lp;
 vector[4] cVar;
-real sigmaS;
-real tauS;
+//real sigmaS;
+//real tauS;
 //sigmaS =1*sigma;
 //tauS = 0.1*tau;
 cVar=tau*components;

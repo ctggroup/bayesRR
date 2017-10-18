@@ -1,8 +1,10 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document: default
+  html_notebook: default
 ---
-```{r}
+```{r,cache=T}
 source('../Simulations/LinearModel/Coefficients.R')
 source('../Simulations/LinearModel/Covariates.R')
 source('../Simulations/LinearModel/noise.R')
@@ -31,8 +33,8 @@ U <- unlist(replicate(
 Y <- linearModel(X = X,B = B,E = E)
 Px=M
 save(list=c('X','Y','U','E','B','Z'),file=c('BayesRInput.RData'))
-
-Y=scale(Y)
+#scale covariates and responses to unit one variance
+Y=scale(Y) 
 Y=Y[,1]
 X=scale(X)
 
@@ -41,11 +43,14 @@ LHS <- (t(X)%*%Y)
 b_OLS <- LHS / RHS
 # estimate effects by multiple regression
 b_MR_OLS <- solve(t(X) %*% (X)) %*% (t(X) %*% Y)
-plot(B[,1],B[,1],type="l",main="Bayes R Unpooled")
- points(x=B[,1],y=b_MR_OLS)
  
 ```
-```{r}
+
+##Unpooled model
+
+We run stan for 4 chains. Slightly increase delta adaptation and tree depth to improve estimates in this analysis (at the expense of running time).
+
+```{r unpooled, cache=T}
 options(mc.cores = parallel::detectCores())
 
 modelUnpooled<- stan_model(file = "BayesRUnPooled.stan",auto_write = T)
@@ -53,28 +58,36 @@ modelUnpooled<- stan_model(file = "BayesRUnPooled.stan",auto_write = T)
 
 
 
-BayesFitUnpooled<-sampling(modelUnpooled,chains=4,warmup=1000,iter=2000,control = list(max_treedepth = 10))
+BayesFitUnpooled<-sampling(modelUnpooled,chains=4,warmup=3000,iter=4000,control = list(max_treedepth = 11,adapt_delta=0.85))
  #BayesFitUnpooled<-vb(modelUnpooled)
+ stan_effects<- rstan::get_posterior_mean(BayesFitUnpooled,'beta')
  rstan::stan_diag(BayesFitUnpooled)
  
 save(list='BayesFitUnpooled',file='BayesFitUnpooled.RData')
 
-  stan_effects<- rstan::get_posterior_mean(BayesFitUnpooled,'beta')
- plot(B[,1],B[,1],type="l",main="Bayes R Unpooled")
- points(x=B[,1],y=b_MR_OLS,pch = 23,col="yellow")
- points(x=B[,1],y=stan_effects[,1])
- points(x=B[,1],y=stan_effects[,2],col="red")
- points(x=B[,1],y=stan_effects[,3],col="blue")
- points(x=B[,1],y=stan_effects[,4],col="green")
+ Bl<-log10(abs(B))
+ b_MR_OLSl<-log10(abs(b_MR_OLS))
+ stan_effects<-log10(abs(stan_effects))
+ plot(Bl[,1],Bl[,1],type="l",main="individual chain means for BayesR Un-Pooled ",xlab="True effects(log10-absolute)",ylab="Estimated effects(log10-absolute)",axes=F)
+ axis(side=1, at=c(-6,-4,-3,-2,-1), c("1e-5","1e-4","1e-3","1e-2","1e-1"))
+ axis(side=2,at=c(-6,-4,-3,-2,-1), c("1e-5","1e-4","1e-3","1e-2","1e-1"))
+  points(x=Bl[,1],y=b_MR_OLSl,pch = 23,col="black")
+ points(x=Bl[,1],y=stan_effects[,1],col="yellow")
+ legend("bottomright",pch = c(23),legend = "OLS")
+ points(x=Bl[,1],y=stan_effects[,2],col="red")
+ points(x=Bl[,1],y=stan_effects[,3],col="blue")
+ points(x=Bl[,1],y=stan_effects[,4],col="green")
+ legend("bottomright",pch = c(23),legend = "OLS")
  
- line(B[,1],B[,1])
-
+ 
 ```
 
-```{r}
+##Pooled model
+
+```{r,cache=T}
 modelPooled<- stan_model(file = "BayesRPooled.stan",auto_write = T)
-BayesFitPooled<-sampling(modelPooled,chains=4,warmup=500,iter=1000,control = list(max_treedepth = 10))
-#BayesFitPooled<-vb(modelPooled)
+BayesFitPooled<-sampling(modelPooled,chains=4,warmup=3000,iter=4000,control = list(max_treedepth = 11,adapt_delta=0.85))
+#ayesFitPooled<-vb(modelPooled)
 
  save(list='BayesFitPooled',file='BayesFitPooled.RData')
  rstan::stan_diag(BayesFitPooled)
@@ -84,15 +97,30 @@ BayesFitPooled<-sampling(modelPooled,chains=4,warmup=500,iter=1000,control = lis
  
  ssPooled<- shinystan::as.shinystan(BayesFitPooled)
  save(list='ssPooled',file='BayesFitPooledSS.RData')
- Bl<-log(abs(B))
- b_MR_OLSl<-log(abs(b_MR_OLS))
- stan_effects<-log(abs(stan_effects))
- plot(Bl[,1],Bl[,1],type="l",main="Bayes R Pooled")
- points(x=Bl[,1],y=b_MR_OLSl,pch = 23,col="yellow")
- points(x=Bl[,1],y=stan_effects[,1])
+ Bl<-log10(abs(B))
+ b_MR_OLSl<-log10(abs(b_MR_OLS))
+ stan_effects<-log10(abs(stan_effects))
+plot(Bl[,1],Bl[,1],type="l",main="individual chain means for BayesR Pooled ",xlab="True effects(log10-absolute)",ylab="Estimated effects(log10-absolute)",axes=F) 
+ axis(side=1, at=c(-6,-4,-3,-2,-1), c("1e-5","1e-4","1e-3","1e-2","1e-1"))
+ axis(side=2,at=c(-6,-4,-3,-2,-1), c("1e-5","1e-4","1e-3","1e-2","1e-1"))
+ points(x=Bl[,1],y=b_MR_OLSl,pch = 23,col="black")
+ points(x=Bl[,1],y=stan_effects[,1],col="yellow")
  points(x=Bl[,1],y=stan_effects[,2],col="red")
  points(x=Bl[,1],y=stan_effects[,3],col="blue")
  points(x=Bl[,1],y=stan_effects[,4],col="green")
- line(Bl[,1],Bl[,1])
+ legend("bottomright",pch = c(23),legend = "OLS")
+ 
 ```
+
+##Fit Summaries
+
+```{r}
+print(summary(BayesFitUnpooled)$summary)
+```
+
+```{r}
+print(summary(BayesFitUnpooled)$summary)
+```
+
+
 
