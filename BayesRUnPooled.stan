@@ -13,17 +13,13 @@ vector[Px] beta; // flat prior
 // this gives the lower bound for the variance components
 real<lower=0> sigma;
 // this is our vector of marker-specific variances
-real<lower=0> tau;
+real<lower=0,upper=10> tau;
 simplex[4] pi[Px];
 }
 
 transformed parameters{
 real lp;
 vector[4] cVar;
-//real sigmaS;
-//real tauS;
-//sigmaS =1*sigma;
-//tauS = 0.1*tau;
 cVar=tau*components;
 
 {
@@ -41,10 +37,7 @@ cVar=tau*components;
 }
 }
 model{
-tau ~ inv_chi_square(3); //normal prior on variances as recommended in stan page
 sigma ~ inv_gamma(2,1); // normal prior on variance as recommended in stan page
-//MU ~ cauchy(0,1);   // fat tailed prior on the means
-// the likelihood (vector expression)
 Y ~ normal( X * beta, sigma);
 
 target += lp; //mixture contribution to the joint distribution

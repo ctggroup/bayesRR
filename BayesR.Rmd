@@ -58,19 +58,17 @@ modelUnpooled<- stan_model(file = "BayesRUnPooled.stan",auto_write = T)
 
 
 
-BayesFitUnpooled<-sampling(modelUnpooled,chains=4,warmup=3000,iter=4000,control = list(max_treedepth = 14,adapt_delta=0.85))
- #BayesFitUnpooled<-vb(modelUnpooled)
+BayesFitUnpooled<-sampling(modelUnpooled,chains=4,warmup=1000,iter=2000,control = list(max_treedepth = 10,adapt_delta=0.85))
+#T Use this for very quick but maybe unstable inferences
+#BayesFitUnpooled<-vb(modelUnpooled)
  stan_effects<- rstan::get_posterior_mean(BayesFitUnpooled,'beta')
  rstan::stan_diag(BayesFitUnpooled)
  
-save(list='BayesFitUnpooled',file='BayesFitUnpooled.RData')
 
 Bl<-log10(abs(B))
  b_MR_OLSl<-log10(abs(b_MR_OLS))
  stan_effects<-log10(abs(stan_effects))
  plot(Bl[,1],Bl[,1],type="l",main="individual chain means for BayesR Pooled ",xlab="True effects(log10-absolute)",ylab="Estimated effects(log10-absolute)") 
-# axis(side=1, at=c(-6,-4,-3,-2,-1), c("1e-5","1e-4","1e-3","1e-2","1e-1"))
-# axis(side=2,at=c(-6,-4,-3,-2,-1), c("1e-5","1e-4","1e-3","1e-2","1e-1"))
  points(x=Bl[,1],y=b_MR_OLSl,pch = 23,col="black")
  points(x=Bl[,1],y=stan_effects[,1],col="yellow")
  points(x=Bl[,1],y=stan_effects[,2],col="red")
@@ -81,8 +79,6 @@ Bl<-log10(abs(B))
  stan_effects<-log10(abs(stan_effects))
  
  plot(Bl[,1],Bl[,1],type="l",main=" mean BayesR Pooled ",xlab="True effects(log10-absolute)",ylab="Estimated effects(log10-absolute)") 
-# axis(side=1, at=c(-6,-4,-3,-2,-1), c("1e-5","1e-4","1e-3","1e-2","1e-1"))
-# axis(side=2,at=c(-6,-4,-3,-2,-1), c("1e-5","1e-4","1e-3","1e-2","1e-1"))
  points(x=Bl[,1],y=b_MR_OLSl,pch = 23,col="black")
  points(x=Bl[,1],y=stan_effects,col="red")
  legend("bottomright",pch = c(23),legend = "OLS")
@@ -98,17 +94,16 @@ Bl<-log10(abs(B))
 
 ```{r,cache=T}
 modelPooled<- stan_model(file = "BayesRPooled.stan",auto_write = T)
-BayesFitPooled<-sampling(modelPooled,chains=4,warmup=3000,iter=4000,control = list(max_treedepth = 14,adapt_delta=0.85))
-#ayesFitPooled<-vb(modelPooled)
+BayesFitPooled<-sampling(modelPooled,chains=4,warmup=2000,iter=4000,control = list(max_treedepth = 10,adapt_delta=0.85))
+#Use this for very quick but maybe unstable inferences
+#BayesFitPooled<-vb(modelPooled)
 
- save(list='BayesFitPooled',file='BayesFitPooled.RData')
  rstan::stan_diag(BayesFitPooled)
  
  stan_effects<- rstan::get_posterior_mean(BayesFitPooled,'beta')
  
  
  ssPooled<- shinystan::as.shinystan(BayesFitPooled)
- save(list='ssPooled',file='BayesFitPooledSS.RData')
  Bl<-log10(abs(B))
  b_MR_OLSl<-log10(abs(b_MR_OLS))
  stan_effects<-log10(abs(stan_effects))
