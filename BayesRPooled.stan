@@ -2,23 +2,18 @@
 data{
   int<lower=0> Px;
   int<lower=0> N;
+  int K;
   matrix[N,Px] X;
   real Y[N];
+  vector[K] components;
 }
-transformed data{
-  vector[4] components;
-  components[1]=1e-6;
-  components[2]=1e-3;
-  components[3]=1e-2;
-  components[4]=1e-1;
-}
+
 parameters{
   vector[Px] beta; // flat prior
   // this gives the lower bound for the variance components
   real<lower=0> sigma;
   // this is our vector of marker-specific variances
   real<lower=0> tau;
-  vector[N] MU;
   simplex[4] pi;
 }
 
@@ -45,7 +40,7 @@ transformed parameters{
   }
 }
 model{
-  tau ~ inv_gamma(2,1); //normal prior on variances as recommended in stan pag
+  tau ~ inv_chi_square(3); //normal prior on variances as recommended in stan pag
   sigma ~ inv_gamma(2,1); // normal prior on variance as recommended in stan page
   //MU ~ cauchy(0,1);   // fat tailed prior on the means
   // the likelihood (vector expression)

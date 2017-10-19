@@ -1,16 +1,11 @@
 //UNPOOLED BayesR: individual component probabilities for each effect"
-		data{ 
+data{ 
+	int K;
 	int<lower=0> Px;
 	int<lower=0> N;
 	matrix[N,Px] X;
 	real Y[N];
-}
-transformed data{
-  vector[4] components;
-  components[1]=1e-6;
-  components[2]=1e-3;
-  components[3]=1e-2;
-  components[4]=1e-1;
+	vector[K] components;
 }
 parameters{
 vector[Px] beta; // flat prior 
@@ -19,7 +14,6 @@ vector[Px] beta; // flat prior
 real<lower=0> sigma;
 // this is our vector of marker-specific variances
 real<lower=0> tau;
-vector[N] MU;
 simplex[4] pi[Px];
 }
 
@@ -47,7 +41,7 @@ cVar=tau*components;
 }
 }
 model{
-tau ~ inv_gamma(2,1); //normal prior on variances as recommended in stan page
+tau ~ inv_chi_square(3); //normal prior on variances as recommended in stan page
 sigma ~ inv_gamma(2,1); // normal prior on variance as recommended in stan page
 //MU ~ cauchy(0,1);   // fat tailed prior on the means
 // the likelihood (vector expression)
