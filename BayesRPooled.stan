@@ -5,7 +5,7 @@ data{
   int K;
   matrix[N,Px] X;
   real Y[N];
-  vector[K] components;
+  vector[K] components; //WITHOUT THE SPIKE AT ZERO COMPONENT
 }
 
 parameters{
@@ -14,35 +14,31 @@ parameters{
   real<lower=0> sigma;
   // this is our vector of marker-specific variances
   real<lower=0,upper=10> tau;
-  simplex[4] pi;
+  simplex[K+1] pi;
 }
 
 transformed parameters{
   real lp;
-  vector[4] cVar;
+  vector[K] cVar;
   cVar=tau*components;
   {
-    vector[4] beta1; // flat prior
+    vector[K+1] beta1; // flat prior
     real accum;
     accum=0;
     for(i in 1:Px){ //mixture contributions to the joint distribution
-      beta1[1]=log(pi[1])+normal_lpdf(beta[i]|0,1e-4);
-      beta1[2]= log(pi[2])+normal_lpdf(beta[i]|0,cVar[2]);
-      beta1[3]=log(pi[3])+normal_lpdf(beta[i]|0,cVar[3]);
-      beta1[4]=log(pi[4])+normal_lpdf(beta[i]|0,cVar[4]);
+      beta1[1]=log(pi[1])+normal_lpdf(beta[i]|0,1e-4); //SPIKE AT ZERO
+      for(k in 1:K){
+        beta1[k+1]= log(pi[k+1])+normal_lpdf(beta[i]|0,cVar[k]);
+      }
       accum= accum+log_sum_exp(beta1);
     }
     lp=accum;
   }
 }
 model{
-  sigma ~ inv_gamma(2,1); // normal prior on variance as recommended in stan page
-  Y ~ normal( X * beta, sigma);
+  sigma ~ inv_gamma(2,1); 
+  mu ~ cauchy(0,1);
+  Y ~ normal(mu + X * beta, sigma);
   target += lp; //mixture contribution to the joint distribution
 }
 
-generated quantities{
-  vector[N] ypred;
-  for(i in 1:N)
-    ypred[i] = normal_rng(X[i,]*beta,sigma);
-}
