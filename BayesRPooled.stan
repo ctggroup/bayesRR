@@ -26,7 +26,7 @@ transformed parameters{
     real accum;
     accum=0;
     for(i in 1:Px){ //mixture contributions to the joint distribution
-      beta1[1]=log(pi[1])+normal_lpdf(beta[i]|0,cVar[1]);
+      beta1[1]=log(pi[1])+normal_lpdf(beta[i]|0,1e-4);
       beta1[2]= log(pi[2])+normal_lpdf(beta[i]|0,cVar[2]);
       beta1[3]=log(pi[3])+normal_lpdf(beta[i]|0,cVar[3]);
       beta1[4]=log(pi[4])+normal_lpdf(beta[i]|0,cVar[4]);

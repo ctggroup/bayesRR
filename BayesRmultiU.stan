@@ -22,25 +22,26 @@ transformed data{
 parameters{
   matrix[Px,Q] beta;
   vector<lower=0>[Q] sigma; //variance of likelihood, that is, sigma^2 in traditional notation
-  real<lower=0,upper=10> tau; //variance of components, that is, tau^2 in traditional notation
-   simplex[K] pi;
+ real<lower=0,upper=10> tau[Q]; //variance of components, that is, tau^2 in traditional notation
+   simplex[K+1] pi;
 }
 transformed parameters{
   real lp;
-  vector[4] cVar;
-  cVar = tau*components;
+  matrix[Q,K] cVar;
+  
   {
-    vector[4] beta1;
-    vector[2] lambda1;
+    vector[K+1] beta1;
     real accum;
     accum = 0;
+    // K+1 mixture of  normals as priors for the beta
     for(j in 1:Q){
+      cVar[j,] = tau[j]*components';
       for(i in 1:Px){
-	beta1[1] = log(pi[1]) + normal_lpdf(beta[i,j] | 0, cVar[1]);
-	beta1[2] = log(pi[2]) + normal_lpdf(beta[i,j] | 0, cVar[2]);
-	beta1[3] = log(pi[3]) + normal_lpdf(beta[i,j] | 0, cVar[3]);
-	beta1[4] = log(pi[4]) + normal_lpdf(beta[i,j] | 0, cVar[4]);
-	accum = accum + log_sum_exp(beta1);
+        beta1[1] = log(pi[1]) + normal_lpdf(beta[i,j] | 0, 1e-4);
+        for(k in 2:(K+1)){
+          beta1[k] = log(pi[k]) + normal_lpdf(beta[i,j] | 0, cVar[j,k-1]);
+        }
+	      accum = accum + log_sum_exp(beta1);
       }
     }
     
